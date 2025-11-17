@@ -1,5 +1,5 @@
 // src/pages/SubmitJobPage.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import './SubmitJob.css';
 import NetworkSelection from '../../components/NetworkSelection';
 import Options from '../../components/Options';
@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 const SubmitJobPage: React.FC = () => {
   const navigate = useNavigate();
+  const [notifyCompletion, setNotifyCompletion] = useState<boolean>(false);
   const { 
     blantOptions, 
     handleSubmit, 
@@ -16,6 +17,8 @@ const SubmitJobPage: React.FC = () => {
     handleBlantOptionsChange,
     isSubmitted,
     setIsSubmitted,
+    email,
+    setEmail,
   } = useJobSubmission();
 
   const handleSubmitJob = async () => {
@@ -38,6 +41,31 @@ const SubmitJobPage: React.FC = () => {
       <NetworkSelection 
         onDataChange={handleFileInputChange}
       />
+        <div className="sjp-checkboxContainer" style={{ marginBottom: "1em" }}> 
+          <label className="sjp-checkboxLabel">
+            <input
+              type="checkbox"
+              checked={notifyCompletion}
+              onChange={(e) => setNotifyCompletion(e.target.checked)}
+            />
+            Email me when the job is completed
+          </label>
+        </div>
+        {
+          notifyCompletion && (
+            <div className="sjp-emailContainer">
+              <input
+                type="email"
+                value={email || ''}
+                onChange={(e) => setEmail(e.target.value)}
+                className="sjp-emailInput"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+          )
+        }
+
         <Options 
         onDataChange={handleBlantOptionsChange}
         initialData={blantOptions}

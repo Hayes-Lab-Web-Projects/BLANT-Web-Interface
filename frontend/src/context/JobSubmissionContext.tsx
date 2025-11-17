@@ -23,6 +23,7 @@ export function JobSubmissionProvider({
         density: 1,
         fractionalOverlap: 0.5,
     });
+    const [email, setEmail] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
 
     const validateFile = (
@@ -111,7 +112,7 @@ export function JobSubmissionProvider({
         const formData = new FormData();
         formData.append("file", networkFile);
         formData.append("options", JSON.stringify(blantOptions));
-
+        formData.append("email", email || '');
         // Log FormData contents
         console.log("FormData contents:");
         for (const pair of formData.entries()) {
@@ -155,6 +156,8 @@ export function JobSubmissionProvider({
                 handleBlantOptionsChange,
                 resetForm,
                 fileError,
+                email,
+                setEmail,
             }}
         >
             {children}
