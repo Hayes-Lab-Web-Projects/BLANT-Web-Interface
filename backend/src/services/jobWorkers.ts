@@ -26,18 +26,18 @@ const transporter = nodemailer.createTransport({
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD,
     },
-  });
+});
 
-function sendEmail(email: string, subject: string, text: string) {
-    const mailOptions = {
-        from: `BLANT Hayes Lab <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: subject,   
-        text: text,
-    };
-    transporter.sendMail(mailOptions).catch((error) => {
-        console.error(`Error sending email:`, error);
-    });
+const sendEmail = (recipientEmail: string, subject: string, text: string) => {
+  const mailOptions = {
+      from: `BLANT Hayes Lab <${process.env.EMAIL_USER}>`,
+      to: recipientEmail,
+      subject: subject,   
+      text: text,
+  };
+  transporter.sendMail(mailOptions).catch((error) => {
+      console.error(`Error sending email:`, error);
+  });
 }
 
 const blantDirectory = process.env.BLANT_DIRECTORY;
@@ -134,7 +134,7 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
                 const job = await getJobFromQueue(jobId);
                 const email = job?.data.email;
                 if (email) {
-                    sendEmail(email, `[BLANT Hayes Lab] Job Completed`, `Job ${jobId} completed successfully with code ${code}. View the results here: https://hayeslab.ics.uci.edu/blant/lookup-job/${jobId}`);
+                    sendEmail(email, `[BLANT Hayes Lab] Job Completed (${jobId})`, `Job completed successfully with code ${code}. View the results here: https://hayeslab.ics.uci.edu/blant/lookup-job/${jobId}`);
                 }
 
                 if (code === 0) {
