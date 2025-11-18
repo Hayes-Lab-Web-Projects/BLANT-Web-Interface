@@ -124,12 +124,13 @@ const submitJobController = async (req: SubmitJobRequest, res: Response, next: N
         console.log("submitJobController req.body:", req.body);
         const jobOptions: SubmitJobOptions = JSON.parse(req.body.options); // parse req.body string into an object
         console.log("submitJobController jobOptions object:", jobOptions);
+        const email = req.body.email;
 
         _validateSubmitJob(jobOptions, req);
 
         // creates job and runs preprocessing (creating the directory for output files, moving the network files there, etc... but does not actually start running the job)
         // const result = await createJob(req.file, req.body.options.density, req.body.options.graphletSize);
-        const result = await createJob(req.file, jobOptions.density, jobOptions.graphletSize, jobOptions.fractionalOverlap);
+        const result = await createJob(req.file, jobOptions.density, jobOptions.graphletSize, jobOptions.fractionalOverlap, email);
         console.log("cratead job with preprocess data:", result);
         //  Send successful response
         const processResult = await processController(result);

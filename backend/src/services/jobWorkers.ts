@@ -3,8 +3,10 @@ import { JobData } from '../../types/types';
 import IORedis from 'ioredis';
 import { spawn } from 'child_process';
 import fs from 'fs';
-import { updateJobInQueue } from '../config/queue';
+import { getJobFromQueue, updateJobInQueue } from '../config/queue';
 import * as path from 'path';
+import nodemailer from 'nodemailer';
+
 require('dotenv').config();
 
 console.log("Worker started");
@@ -15,6 +17,28 @@ const connection = new IORedis({
     maxRetriesPerRequest: null,
     password: process.env.REDIS_PASSWORD,
 });
+
+const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+
+function sendEmail(email: string, subject: string, text: string) {
+    const mailOptions = {
+        from: `BLANT Hayes Lab <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: subject,   
+        text: text,
+    };
+    transporter.sendMail(mailOptions).catch((error) => {
+        console.error(`Error sending email:`, error);
+    });
+}
 
 const blantDirectory = process.env.BLANT_DIRECTORY;
 const worker = new Worker('jobQueue', async (job: Job) => {
@@ -79,7 +103,6 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
                         });
                     }
                         
-
                     if (!streamReady) {
                         logStream.once('drain', () => {
                             streamReady = true;
@@ -88,8 +111,6 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
                 }
             };
 
-
-            
             child.stdout.on('data', async (data: Buffer) => {
                 const dataStr = data.toString();
                 stdout += dataStr;
@@ -108,8 +129,14 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
                 await updateJobInQueue(jobId, { execLogFileOutput: stdout });
             });
             
-            child.on('close', (code) => {
+            child.on('close', async (code) => {
                 logStream.end();
+                const job = await getJobFromQueue(jobId);
+                const email = job?.data.email;
+                if (email) {
+                    sendEmail(email, `[BLANT Hayes Lab] Job Completed`, `Job ${jobId} completed successfully with code ${code}. View the results here: https://hayeslab.ics.uci.edu/blant/lookup-job/${jobId}`);
+                }
+
                 if (code === 0) {
                     console.log(`Job ${jobId} completed successfully with code ${code}`);
                     resolve({ success: true, stdout });

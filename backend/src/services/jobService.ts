@@ -35,6 +35,7 @@ const createJob = async (
     density: number,
     graphletSize: number,
     fractionalOverlap: number,
+    email: string
 
 ): Promise<JobData> => {
 
@@ -58,6 +59,7 @@ const createJob = async (
         density,
         graphletSize,
         fractionalOverlap,
+        email: email || null,
         attempts: 0,
         execLogFileOutput: '',
         createdAt: new Date().toISOString(),
