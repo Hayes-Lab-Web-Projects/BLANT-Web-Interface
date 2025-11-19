@@ -25,6 +25,7 @@ export function JobSubmissionProvider({
     });
     const [email, setEmail] = useState<string | null>(null);
     const [fileError, setFileError] = useState<string | null>(null);
+    const [notifyCompletion, setNotifyCompletion] = useState<boolean>(false);
 
     const validateFile = (
         file: File,
@@ -39,6 +40,16 @@ export function JobSubmissionProvider({
         return [true, null];
     };
 
+    const _validateEmail = (email: string | null): void => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email && notifyCompletion) {
+            throw new Error("Email address is required to notify completion. Please try again.");
+        }
+        if (email && !emailRegex.test(email)) {
+            throw new Error("Invalid email address. Please try again.");
+        }
+    };
+    
     const handleFileInputChange = async (
         event: React.ChangeEvent<HTMLInputElement>,
     ) : Promise<boolean> => {
@@ -107,7 +118,7 @@ export function JobSubmissionProvider({
         if (!networkFile) {
             throw new Error("Please upload a network file.");
         }
-
+        _validateEmail(email);
         _validateBlantOptions(blantOptions);
         const formData = new FormData();
         formData.append("file", networkFile);
@@ -154,6 +165,8 @@ export function JobSubmissionProvider({
                 setIsSubmitted,
                 handleFileInputChange,
                 handleBlantOptionsChange,
+                notifyCompletion,
+                setNotifyCompletion,
                 resetForm,
                 fileError,
                 email,

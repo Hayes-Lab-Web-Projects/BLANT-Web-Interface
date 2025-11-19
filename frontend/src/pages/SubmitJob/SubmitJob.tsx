@@ -1,5 +1,5 @@
 // src/pages/SubmitJobPage.tsx
-import React, { useState } from 'react';
+import React from 'react';
 import './SubmitJob.css';
 import NetworkSelection from '../../components/NetworkSelection';
 import Options from '../../components/Options';
@@ -9,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 
 const SubmitJobPage: React.FC = () => {
   const navigate = useNavigate();
-  const [notifyCompletion, setNotifyCompletion] = useState<boolean>(false);
   const { 
     blantOptions, 
     handleSubmit, 
@@ -19,6 +18,8 @@ const SubmitJobPage: React.FC = () => {
     setIsSubmitted,
     email,
     setEmail,
+    notifyCompletion,
+    setNotifyCompletion,
   } = useJobSubmission();
 
   const handleSubmitJob = async () => {
