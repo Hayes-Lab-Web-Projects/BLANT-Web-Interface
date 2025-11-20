@@ -18,6 +18,10 @@ export interface JobSubmissionContextSchema {
     resetForm: () => void,
     handleFileInputChange: (event: React.ChangeEvent<HTMLInputElement>) => Promise<boolean>,
     handleBlantOptionsChange: (event: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>, optionName: keyof blantOptions) => Promise<boolean>,
+    notifyCompletion: boolean,
+    setNotifyCompletion: (notifyCompletion: boolean) => void,
+    email: string | null,
+    setEmail: (email: string | null) => void,
 }
 
 export interface FormData {
@@ -25,6 +29,7 @@ export interface FormData {
     graphletSize: number;
     edgeDensity: number;
     fractionalOverlap: number;
+    email: string | null;
 }
 
 

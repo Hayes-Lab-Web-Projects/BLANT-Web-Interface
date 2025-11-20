@@ -19,6 +19,7 @@
   border-radius: 8px;
   overflow: hidden;
   padding: 2em;
+  padding-left: 3em;
 }
 
 .sjp-buttonContainer {
@@ -28,4 +29,17 @@
   margin-top: 2rem;
   padding-top: 1.5rem; 
   border-top: 1px solid #e5e7eb;
+}
+
+.sjp-emailContainer {
+  margin-bottom: 1em;
+}
+
+.sjp-emailInput {
+  width: 15rem;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: #fff;
 }

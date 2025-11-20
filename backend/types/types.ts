@@ -42,6 +42,7 @@ export interface SubmitJobRequest extends Request{
             //     samplingMethod: string,
             //     precision?: number,
             // }
+        email: string;
         file: MulterFile;
     };
 }
@@ -107,6 +108,7 @@ export type JobData = {
     networkName: string;
     extension: string;
     jobLocation: string;
+    email: string | null;
     // processing details
     attempts: number;
     result?: any;

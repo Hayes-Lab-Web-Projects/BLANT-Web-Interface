@@ -10,7 +10,7 @@ const connection = new IORedis({
     password: process.env.REDIS_PASSWORD,
 });
 
-const jobQueue = new Queue('jobQueue', { connection });
+const jobQueue = new Queue<JobData>('jobQueue', { connection });
 
 async function addJobToQueue(jobId: string, jobData: JobData) {
     console.log('Adding job to queue', jobId);
