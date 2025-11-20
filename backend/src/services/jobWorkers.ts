@@ -41,18 +41,40 @@ worker.on('completed', (job: Job, returnvalue: any) => {
     console.log(`Job completed:`, { jobId: job.id, returnvalue });
 });  
 
+// Simple validation to ensure input is safe for shell execution (must be a number/simple string)
+const sanitizeShellInput = (input: any): string => {
+    const s = String(input);
+    // Basic check: only allow simple characters, numbers, dots, and hyphens.
+    // If complex paths/filenames are expected, this must be more robust.
+    if (/^[a-zA-Z0-9.\-/_]+$/.test(s)) {
+        return s;
+    }
+    // If validation fails, return a safe, empty string or throw error.
+    console.warn(`Unsafe input detected and sanitized: ${s}`);
+    return ''; 
+};
+
 const jobWorker = async (jobId: string, jobData: JobData) => {
 
         // Construct absolute paths
+        const safeJobData = {
+            networkName: sanitizeShellInput(jobData.networkName),
+            extension: sanitizeShellInput(jobData.extension),
+            graphletSize: sanitizeShellInput(jobData.graphletSize),
+            fractionalOverlap: sanitizeShellInput(jobData.fractionalOverlap),
+            density: sanitizeShellInput(jobData.density),
+        }
+        const safeJobId = sanitizeShellInput(jobId);
 
-        const networkDir = path.resolve(`./process/${jobId}`, 'networks', `${jobData.networkName}${jobData.extension}`);
 
-        const outputFile = path.resolve(`./process/${jobId}`, 'blant_runtime.log');
+        const networkDir = path.resolve(`./process/${safeJobId}`, 'networks', `${safeJobData.networkName}${safeJobData.extension}`);
+
+        const outputFile = path.resolve(`./process/${safeJobId}`, 'blant_runtime.log');
 
         const optionString = `cd ${blantDirectory} && source ./setup.sh && stdbuf -oL -eL ./scripts/blant-clusters.sh` 
-                             + ` -o ${jobData.fractionalOverlap} ./blant ${jobData.graphletSize} ${jobData.density} ${networkDir}`;
+                             + ` -o ${safeJobData.fractionalOverlap} ./blant ${safeJobData.graphletSize} ${safeJobData.density} ${networkDir}`;
         
-        console.log(`Executing command for job ${jobId}:`, optionString);
+        console.log(`Executing command for job ${safeJobId}:`, optionString);
         
         return new Promise((resolve, reject) => {
             const child = spawn('/bin/bash', ['-c', optionString]);
@@ -94,33 +116,33 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
                 const dataStr = data.toString();
                 stdout += dataStr;
                 // Optional: log in real-time
-                console.log(`Job ${jobId} stdout data.toString():`, data.toString());
-                console.log(`Job ${jobId} stdout data:`, data);
+                console.log(`Job ${safeJobId} stdout data.toString():`, data.toString());
+                console.log(`Job ${safeJobId} stdout data:`, data);
                 // logStream.write(data);
                 writeToStream(data);
-                await updateJobInQueue(jobId, { execLogFileOutput: stdout });
+                await updateJobInQueue(safeJobId, { execLogFileOutput: stdout });
             });
             
             child.stderr.on('data', async (data: Buffer) => {
                 stdout += data.toString();
-                console.warn(`Job ${jobId} stderr:`, data.toString());
+                console.warn(`Job ${safeJobId} stderr:`, data.toString());
                 logStream.write(data);
-                await updateJobInQueue(jobId, { execLogFileOutput: stdout });
+                await updateJobInQueue(safeJobId, { execLogFileOutput: stdout });
             });
             
             child.on('close', (code) => {
                 logStream.end();
                 if (code === 0) {
-                    console.log(`Job ${jobId} completed successfully with code ${code}`);
+                    console.log(`Job ${safeJobId} completed successfully with code ${code}`);
                     resolve({ success: true, stdout });
                 } else {
-                    console.error(`Job ${jobId} failed with code ${code}`);
+                    console.error(`Job ${safeJobId} failed with code ${code}`);
                     reject(new Error(`Process exited with code ${code}`));
                 }
             });
             
             child.on('error', (error) => {
-                console.error(`Job ${jobId} error:`, error);
+                console.error(`Job ${safeJobId} error:`, error);
                 logStream.end();
                 reject(error);
             });
