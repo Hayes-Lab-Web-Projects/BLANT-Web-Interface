@@ -33,11 +33,26 @@ const AccordionSection: React.FC<AccordionSectionProps> = ({
 
   return (
     <div className={sectionClasses}>
-      <div className="as-header" onClick={isClickable ? onClick : undefined}>
+      <button
+        className="as-header"
+        onClick={isClickable ? onClick : undefined}
+        disabled={!isClickable}
+        aria-expanded={isActive}
+        aria-controls={`accordion-content-${title.replace(/\s+/g, '-').toLowerCase()}`}
+        aria-disabled={!isClickable}
+      >
         <span>{title}</span>
-        <span>{isActive ? '▲' : isCompleted ? '▼' : ''}</span>
-      </div>
-      {isActive && <div className="as-content">{children}</div>}
+        <span aria-hidden="true">{isActive ? '▲' : isCompleted ? '▼' : ''}</span>
+      </button>
+      {isActive && (
+        <div 
+          id={`accordion-content-${title.replace(/\s+/g, '-').toLowerCase()}`}
+          className="as-content"
+          role="region"
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };

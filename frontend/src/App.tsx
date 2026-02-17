@@ -16,8 +16,9 @@ import { JobSubmissionProvider } from './context/JobSubmissionContext';
 function App() {
   return (
     <Router basename="/blant">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Header />
-      <main className="flex-grow">
+      <main id="main-content" className="flex-grow" role="main">
         <JobSubmissionProvider>
           <Routes>
               <Route path="/" element={<LandingPage />} />

@@ -6,24 +6,24 @@ import SanaLogo from '../../../public/sana-logo-white.png';
 
 const Header: React.FC = () => {
   return (
-    <header className="header">
+    <header className="header" role="banner">
       <div className="header-left">
-        <Link to="https://hayeslab.ics.uci.edu/" className="site-logo-container">
+        <a href="https://hayeslab.ics.uci.edu/" className="site-logo-container" aria-label="Hayes Lab Home (opens in new tab)" target="_blank" rel="noopener noreferrer">
           <img
             src={SanaLogo}
             alt="SANA Logo"
             className="sana-logo"
           />
           <span className="site-logo-text">Hayes Lab</span>
-        </Link>
+        </a>
       </div>
-      <nav className="header-nav">
+      <nav className="header-nav" role="navigation" aria-label="Main navigation">
         <Link to="/" className="nav-link">Home</Link>
         <Link to="/about" className="nav-link">About BLANT</Link>
         <Link to="/submit-job" className="nav-link">Submit New Job</Link>
         <Link to="/lookup-job" className="nav-link">Lookup Previous Job</Link>
-        <a href="/contact-us" className="nav-link">Contact Us</a>
-        {/* <a href="/login" className="nav-link">Login/Register</a> */}
+        <Link to="/contact-us" className="nav-link">Contact Us</Link>
+        {/* <Link to="/login" className="nav-link">Login/Register</Link> */}
       </nav>
     </header>
   );

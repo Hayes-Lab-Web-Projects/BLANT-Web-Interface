@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 
 const NotFound: React.FC = () => {
   return (
-    <div style={styles.container}>
+    <div style={styles.container} role="main">
       <h1 style={styles.title}>404</h1>
       <h2 style={styles.subtitle}>Page Not Found</h2>
       <p style={styles.message}>
         The page you're looking for doesn't exist or has been moved.
       </p>
-      <Link to="/" style={styles.link}>
+      <Link to="/" style={styles.link} aria-label="Return to home page">
         Return to Home
       </Link>
     </div>

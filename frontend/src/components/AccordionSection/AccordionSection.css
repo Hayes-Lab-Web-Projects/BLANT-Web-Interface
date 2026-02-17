@@ -13,7 +13,16 @@
   align-items: center;
   color: #6b7280;
   cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
   /* margin-left: 1em; */
+}
+
+.as-header:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .as-section.as-completed .as-header {

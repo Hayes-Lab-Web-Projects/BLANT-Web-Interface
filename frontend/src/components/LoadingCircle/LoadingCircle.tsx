@@ -16,14 +16,17 @@ const LoadingCircle: React.FC<LoadingCircleProps> = ({
   className = '' 
 }) => {
   return (
-    <div className={`loading-circle-container ${className}`}>
+    <div className={`loading-circle-container ${className}`} role="status" aria-live="polite">
       <div 
         className={`loading-circle loading-circle--${size}`}
         style={{ '--loading-color': color } as React.CSSProperties}
+        aria-label="Loading"
+        aria-hidden="false"
       >
         {/* <div className="loading-circle__spinner"></div> */}
       </div>
       {text && <p className="loading-circle__text">{text}</p>}
+      <span className="sr-only">Loading, please wait</span>
     </div>
   );
 };

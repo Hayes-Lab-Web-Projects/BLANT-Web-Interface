@@ -28,7 +28,7 @@ const ContactUs: React.FC = () => {
         <div className="cu-pageContainer">
             <div className="cu-contactBox">
                 <h2 className="cu-title">Contact Us</h2>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} aria-label="Contact form">
                     <div className="cu-formGroup">
                         <label htmlFor="name" className="cu-label">Name:</label>
                         <input
@@ -40,6 +40,7 @@ const ContactUs: React.FC = () => {
                             value={formData.name}
                             onChange={handleChange}
                             required
+                            aria-required="true"
                         />
                     </div>
                     <div className="cu-formGroup">
@@ -53,6 +54,7 @@ const ContactUs: React.FC = () => {
                             value={formData.email}
                             onChange={handleChange}
                             required
+                            aria-required="true"
                         />
                     </div>
                     <div className="cu-formGroup">
@@ -66,6 +68,7 @@ const ContactUs: React.FC = () => {
                             value={formData.subject}
                             onChange={handleChange}
                             required
+                            aria-required="true"
                         />
                     </div>
                     <div className="cu-formGroup">
@@ -78,9 +81,10 @@ const ContactUs: React.FC = () => {
                             value={formData.message}
                             onChange={handleChange}
                             required
+                            aria-required="true"
                         />
                     </div>
-                    <button type="submit" className="cu-submitButton">
+                    <button type="submit" className="cu-submitButton" aria-label="Submit contact form">
                         Submit
                     </button>
                 </form>

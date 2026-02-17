@@ -2,7 +2,7 @@ import './Footer.css';
 
 const Footer = () => {
   return (
-    <footer className="footer">
+    <footer className="footer" role="contentinfo">
       <div className="footer-container">
         <div className="footer-content">
           <div className="footer-branding">
@@ -12,15 +12,33 @@ const Footer = () => {
           <div className="footer-sections">
             <div className="footer-contact">
               <h4>Contact</h4>
-              <p><a href="mailto:whayes@uci.edu" style={{ color: '#9ca3af', textDecoration: 'none' }}>whayes@uci.edu</a></p>
+              <p>
+                <a 
+                  href="mailto:whayes@uci.edu" 
+                  style={{ color: '#9ca3af', textDecoration: 'none' }}
+                  aria-label="Email Hayes Lab at whayes@uci.edu"
+                >
+                  whayes@uci.edu
+                </a>
+              </p>
             </div>
             <div className="footer-social">
               <h4>Follow Us</h4>
-              <div className="social-links">
-                <a href="https://twitter.com/hayeslab" target="_blank" rel="noopener noreferrer">
+              <div className="social-links" role="list">
+                <a 
+                  href="https://twitter.com/hayeslab" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  aria-label="Hayes Lab Twitter (opens in new tab)"
+                >
                   Twitter
                 </a>
-                <a href="https://github.com/hayeslab" target="_blank" rel="noopener noreferrer">
+                <a 
+                  href="https://github.com/hayeslab" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  aria-label="Hayes Lab GitHub (opens in new tab)"
+                >
                   GitHub
                 </a>
               </div>

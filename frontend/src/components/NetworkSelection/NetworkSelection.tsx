@@ -27,7 +27,16 @@ const NetworkSelection: React.FC<NetworkSelectionProps> = ({ onDataChange }) => 
 
       <div className="ns-fileInputGroup">
         <label htmlFor="sourceNetwork">Select Network File</label>
-        <input type="file" id="sourceNetwork" className="ns-fileInput" onChange={onDataChange} />
+        <input 
+          type="file" 
+          id="sourceNetwork" 
+          className="ns-fileInput" 
+          onChange={onDataChange}
+          accept=".el,.txt"
+          aria-required="true"
+          aria-describedby="file-input-description"
+        />
+        <span id="file-input-description" className="sr-only">Select a network file in edge list format (.el) up to 1MB in size</span>
       </div>
     </div>
   );

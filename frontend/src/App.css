@@ -19,6 +19,22 @@ html {
   min-height: 100vh;
 }
 
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 main {
   flex-grow: 1;
   padding: 20px;
@@ -26,6 +42,12 @@ main {
   padding-top: 0px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #507DCD;
+  outline-offset: 2px;
 }
 
 /* Responsive adjustments */
