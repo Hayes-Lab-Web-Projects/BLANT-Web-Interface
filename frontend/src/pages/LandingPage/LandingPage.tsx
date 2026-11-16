@@ -37,6 +37,7 @@ const LandingPage: React.FC = () => {
             <a href="/blant/submit-job" aria-label="Community Detection tool">Community Detection Tool</a>, as described
             in our <a href="https://www.liebertpub.com/doi/abs/10.1089/cmb.2025.0095" target="_blank" rel="noopener noreferrer" aria-label="Community detection paper (opens in new tab)">paper</a>
           </li>
+          <li> <a href="/blant/basic-blant-run" aria-label="Basic BLANT Run tool">Basic BLANT Run</a>: run <code>blant -k</code> on your own network </li>
           <li> Other BLANT-based tools will become available soon </li>
         </ul>
         <p>

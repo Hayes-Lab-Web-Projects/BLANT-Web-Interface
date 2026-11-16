@@ -1,7 +1,8 @@
 import fs from 'fs';
 import { Response, NextFunction } from 'express';
 import HttpError from '../middlewares/HttpError';
-import { createJob } from '../services/jobService';
+import { createJob, createBasicBlantRunJob } from '../services/jobService';
+import { cleanupFile } from '../middlewares/upload';
 import { jobProcess } from '../services/processService';
 import {
     DownloadZipRequest,
@@ -15,7 +16,10 @@ import {
     ProcessJobData,
     SubmitJobOptions,
     SubmitJobRequest,
+    SubmitBasicBlantRunRequest,
     UnifiedResponse,
+    BASIC_BLANT_RUN_K_MIN,
+    BASIC_BLANT_RUN_K_MAX,
 } from '../../types/types';
 import path from 'path';
 import { getJobFromQueue, getWaitingCount } from '../config/queue';
@@ -149,6 +153,44 @@ const submitJobController = async (req: SubmitJobRequest, res: Response, next: N
     }
 };
  
+/**
+ * Parses and validates `k` for a Basic BLANT Run.
+ * Accepts only a plain whole number (e.g. "4") inside the allowed range.
+ */
+const _parseBasicBlantRunK = (rawK: unknown): number => {
+    if (typeof rawK !== 'string' || !/^\d+$/.test(rawK.trim())) {
+        throw HttpError.badRequest('k must be a whole number.');
+    }
+    const k = Number(rawK.trim());
+    if (k < BASIC_BLANT_RUN_K_MIN || k > BASIC_BLANT_RUN_K_MAX) {
+        throw HttpError.badRequest(`k must be between ${BASIC_BLANT_RUN_K_MIN} and ${BASIC_BLANT_RUN_K_MAX}.`);
+    }
+    return k;
+};
+
+/**
+ * Controller for the Basic BLANT Run tool: `./blant -k <k> network.el`.
+ * Expects multipart form data with `file` (.el network) and `k`.
+ */
+const submitBasicBlantRunController = async (req: SubmitBasicBlantRunRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.file) {
+            throw HttpError.badRequest('No network file uploaded.');
+        }
+        const k = _parseBasicBlantRunK(req.body.k);
+        const jobData = await createBasicBlantRunJob(req.file, k);
+        const processResult = await processController(jobData);
+        res.status(201).json(processResult);
+    } catch (err) {
+        // On a validation error the upload is still in tmp/; remove it.
+        // (After a successful preprocess it has already been moved, and unlink just logs.)
+        if (err instanceof HttpError && err.statusCode === 400) {
+            cleanupFile(req.file);
+        }
+        next(err);
+    }
+};
+
 // Controller to process a job after submission.
 const processController = async (data: JobData): Promise<ProcessJobData> => {
     const jobId = data.id;
@@ -342,6 +384,7 @@ export {
     downloadZipJob, 
     getJobStatus,
     submitJobController, 
+    submitBasicBlantRunController,
     processController,
     cancelJob,
 };

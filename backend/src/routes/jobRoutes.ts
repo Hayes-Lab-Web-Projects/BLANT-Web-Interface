@@ -8,6 +8,7 @@ import {
     // getJobResults,
     getJobStatus,
     submitJobController,
+    submitBasicBlantRunController,
     cancelJob,
 } from '../controllers/jobController';
 
@@ -27,6 +28,15 @@ router.post(
     validateSingleFileMiddleware, // validates if the request contains a file to begin with, throws and error if not
     submitJobController,
     // cleanupFileErrorHandler,
+);
+
+// Basic BLANT Run: ./blant -k <k> network.el
+// Same upload rules as community detection (.el only, 5 MB, one file).
+router.post(
+    '/submitBasicBlantRun',
+    uploadMiddleware,
+    validateSingleFileMiddleware,
+    submitBasicBlantRunController,
 );
 
 router.post(

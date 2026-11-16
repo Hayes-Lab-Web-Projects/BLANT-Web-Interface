@@ -47,6 +47,12 @@ export interface SubmitJobRequest extends Request{
     };
 }
 
+export interface SubmitBasicBlantRunRequest extends Request {
+    body: {
+        k: string;
+    };
+}
+
 export interface SubmitJobOptions {
     density: number,
     graphletSize: number,
@@ -97,13 +103,26 @@ export type JobStatus = 'preprocessing' | 'processing' | 'processed' | 'failed';
 
 export type JobMode = 'f' | 'o' | 'g' | 'i' | 'j' ;
 
+// Which web tool a job belongs to. Jobs queued before this field existed have no
+// `tool` and are treated as community detection.
+export type JobTool = 'communityDetection' | 'basicBlantRun';
+
+// Allowed values of k for the Basic BLANT Run tool (`./blant -k <k> network.el`).
+// Checked on the server in the controller and again in the worker.
+export const BASIC_BLANT_RUN_K_MIN = 3;
+export const BASIC_BLANT_RUN_K_MAX = 8;
+
 export type JobData = {
     // identifiers
     id: string;
     status: JobStatus;
-    density: number;
-    graphletSize: number;
-    fractionalOverlap: number;
+    tool?: JobTool;
+    // community detection options
+    density?: number;
+    graphletSize?: number;
+    fractionalOverlap?: number;
+    // basic BLANT run options
+    k?: number;
     // file info
     networkName: string;
     extension: string;
