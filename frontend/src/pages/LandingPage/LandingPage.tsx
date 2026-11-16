@@ -30,14 +30,17 @@ const LandingPage: React.FC = () => {
       
       <div className="info-text">
         <p>
-          BLANT stand for <a href="https://www.liebertpub.com/doi/abs/10.1089/cmb.2025.0095" target="_blank" rel="noopener noreferrer" aria-label="BLANT paper on Basic Local Alignment of Network Topology (opens in new tab)">Basic Local Alignment of Network Topology</a>.
+          BLANT stands for <a href="https://academic.oup.com/bioinformatics/article/35/24/5363/5542947" target="_blank" rel="noopener noreferrer" aria-label="BLANT paper on Basic Local Alignment of Network Topology (opens in new tab)">Basic Local Alignment of Network Topology</a>.
           It is intended to form the basis of a seed-and-extend local alignment algorithm, but for networks: given an undirected network
           G, and a value of k, it samples connected k-node subgraphs called k-graphlets.
           More information about BLANT is available in the <a href="/blant/about" aria-label="About BLANT section"> About section </a> or our <a href="https://www.liebertpub.com/doi/abs/10.1089/cmb.2025.0095" target="_blank" rel="noopener noreferrer" aria-label="BLANT research paper (opens in new tab)">paper</a> on BLANT.
         </p>
         <h2> Web Tools </h2>
         <ul>
-          <li> <a href="/blant/submit-job" aria-label="Community Detection tool"> Community Detection </a> </li>
+          <li>
+            <a href="/blant/submit-job" aria-label="Community Detection tool">Community Detection Tool</a>, as described
+            in our <a href="https://www.liebertpub.com/doi/abs/10.1089/cmb.2025.0095" target="_blank" rel="noopener noreferrer" aria-label="Community detection paper (opens in new tab)">paper</a>
+          </li>
           <li> Other BLANT-based tools will become available soon </li>
         </ul>
         <p>
