@@ -93,6 +93,9 @@ export interface UnifiedResponse<T = undefined, E = undefined> {
     status: 'success' | 'error' | 'redirect' | 'processing' | 'waiting';
     message: string;
     execLogFileOutput?: string;
+    // Basic BLANT Run only: blant's results (stdout), kept separate from the progress log above.
+    tool?: JobTool;
+    resultsOutput?: string;
     data?: T;
     error?: ErrorDetails<E>;
     redirect?: string;
@@ -135,7 +138,8 @@ export type JobData = {
     result?: any;
     error?: string;
     // outputs
-    execLogFileOutput: string;
+    execLogFileOutput: string;  // for Basic BLANT Run: progress messages (stderr) only
+    resultsOutput?: string;     // Basic BLANT Run only: results (stdout)
     // timestamps (as ISO strings for JSON serialization)
     createdAt: string;
     updatedAt: string;
@@ -208,6 +212,8 @@ export interface ProcessedJobResponse {
     note: string;
     zipDownloadUrl: string;
     execLogFileOutput: string;
+    tool?: JobTool;
+    resultsOutput?: string;
 };
 
 // AUTH TYPES

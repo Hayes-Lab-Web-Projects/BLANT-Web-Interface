@@ -5,7 +5,15 @@ import { useParams } from 'react-router-dom';
 import './LookupJob.css';
 import api from '../../api/api';
 import LoadingCircle from '../../components/LoadingCircle';
+import BasicBlantRunOutput, { type BasicBlantRunState } from '../../components/BasicBlantRunOutput';
 
+// Output of a Basic BLANT Run job (results and progress are shown separately).
+interface BasicBlantRunView {
+  state: BasicBlantRunState;
+  results: string;
+  progress: string;
+  failureMessage?: string;
+}
 
 const LookupJob: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -16,12 +24,51 @@ const LookupJob: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
   const navigate = useNavigate();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [basicBlantRun, setBasicBlantRun] = useState<BasicBlantRunView | null>(null);
+
+  const stopPolling = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
 
   // Set the jobId from URL parameter if it exists
   async function getJobStatus(id: string) {
     console.log('getting job status for id:', id);
     const result = await api.getJobStatus(id);
     console.log('Job Result:', result);
+
+    // Basic BLANT Run jobs: show results and progress separately.
+    const tool = result.tool ?? result.data?.tool;
+    if (tool === 'basicBlantRun') {
+      if (result.status === 'success') {
+        setBasicBlantRun({
+          state: 'done',
+          results: result.data.resultsOutput ?? '',
+          progress: result.data.execLogFileOutput ?? '',
+        });
+        setResponseComplete(true);
+        stopPolling();
+      } else if (result.status === 'error') {
+        setBasicBlantRun({
+          state: 'failed',
+          results: result.resultsOutput ?? '',
+          progress: result.execLogFileOutput ?? '',
+          failureMessage: result.message,
+        });
+        setResponseComplete(true);
+        stopPolling();
+      } else {
+        setBasicBlantRun({
+          state: 'running',
+          results: result.resultsOutput ?? '',
+          progress: result.execLogFileOutput ?? '',
+        });
+      }
+      return;
+    }
+
     if (result.status === 'success') {
       setJobOutput(result.data.execLogFileOutput);
       setResponseComplete(true);
@@ -46,6 +93,7 @@ const LookupJob: React.FC = () => {
 
   useEffect(() => {
     console.log('useEffect id:', id);
+    setBasicBlantRun(null);
     if (id) {
       setJobId(id);
       getJobStatus(id);
@@ -76,7 +124,8 @@ const LookupJob: React.FC = () => {
     e.preventDefault();
     const result = await api.getJobStatus(searchJobId);
 
-    if (result.status === 'error') {
+    // A failed Basic BLANT Run still exists, so open it to show its progress log.
+    if (result.status === 'error' && result.tool !== 'basicBlantRun') {
       alert(result.error.message);
     } else { // only go to /lookup-job/[jobId] if the job exists
       setJobId(() => searchJobId);
@@ -101,6 +150,21 @@ const LookupJob: React.FC = () => {
       alert(result.error.message);
     }
   };
+
+  if (basicBlantRun && jobId) {
+    return (
+      <div className="lj-pageContainer">
+        <BasicBlantRunOutput
+          jobId={jobId}
+          state={basicBlantRun.state}
+          results={basicBlantRun.results}
+          progress={basicBlantRun.progress}
+          failureMessage={basicBlantRun.failureMessage}
+          onCancel={basicBlantRun.state === 'running' ? handleCancelJob : undefined}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="lj-pageContainer">

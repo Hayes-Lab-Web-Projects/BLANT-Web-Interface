@@ -1,0 +1,117 @@
+/* src/components/BasicBlantRunOutput/BasicBlantRunOutput.css */
+.bbr-container {
+    width: 100%;
+    max-width: 760px;
+    text-align: left;
+}
+
+.bbr-title {
+    margin-bottom: 0.25rem;
+}
+
+.bbr-jobId {
+    margin-top: 0;
+    color: #374151;
+    overflow-wrap: anywhere;
+}
+
+.bbr-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    background-color: #eef2ff;
+    color: #1f2937;
+}
+
+.bbr-status-failed {
+    background-color: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.bbr-section {
+    background-color: #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.bbr-sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.bbr-sectionHeader h3 {
+    margin: 0;
+}
+
+.bbr-hint,
+.bbr-empty {
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.bbr-copy,
+.bbr-cancel {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    background-color: #4f46e5;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+}
+
+.bbr-copy:hover,
+.bbr-cancel:hover {
+    background-color: #4338ca;
+}
+
+.bbr-tableWrap {
+    max-height: 480px;
+    overflow: auto;
+    background-color: #ffffff;
+    border-radius: 8px;
+}
+
+.bbr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+.bbr-table th,
+.bbr-table td {
+    padding: 0.4rem 0.75rem;
+    text-align: right;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bbr-table th {
+    position: sticky;
+    top: 0;
+    background-color: #f8fafc;
+}
+
+.bbr-progress summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.bbr-pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 360px;
+    overflow: auto;
+    background-color: #ffffff;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}

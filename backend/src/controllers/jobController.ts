@@ -154,6 +154,20 @@ const submitJobController = async (req: SubmitJobRequest, res: Response, next: N
 };
  
 /**
+ * Reads a text file from a job's folder, or returns null if it doesn't exist or can't be read.
+ * `name` is always a fixed file name chosen by the server, never user input.
+ */
+const _readJobFile = (jobDir: string, name: string): string | null => {
+    const filePath = path.join(jobDir, name);
+    try {
+        return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+    } catch (err) {
+        console.error(`Error reading ${filePath}:`, err);
+        return null;
+    }
+};
+
+/**
  * Parses and validates `k` for a Basic BLANT Run.
  * Accepts only a plain whole number (e.g. "4") inside the allowed range.
  */
@@ -235,6 +249,26 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
         const status = await job.getState();
         console.log("getJobStatus status: ", status);
 
+        const isBasicBlantRun = job.data.tool === 'basicBlantRun';
+        // Jobs run by an older worker wrote results and progress into one log and have no results.txt;
+        // for those, leave out `tool` so the Lookup page shows the single combined log as before.
+        const separatedResults = isBasicBlantRun ? _readJobFile(jobDir, 'results.txt') : null;
+
+        // Basic BLANT Run failures: send the progress log (it holds blant's error message)
+        // instead of the generic community detection error.
+        if (status === 'failed' && isBasicBlantRun) {
+            const message = 'BLANT stopped with an error. See the progress log below.';
+            res.status(400).json({
+                status: 'error',
+                message,
+                error: { message },
+                tool: 'basicBlantRun',
+                execLogFileOutput: _readJobFile(jobDir, 'blant_runtime.log') ?? job.data.execLogFileOutput,
+                resultsOutput: separatedResults ?? '',
+            });
+            return;
+        }
+
         if (status === 'failed') {
             // Read the blant_runtime.log file for error details
             const runLogPath = path.join(jobDir, 'blant_runtime.log');
@@ -290,6 +324,10 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
                         or directly accessed using ${baseUrl}/results?id=${jobId}.`,
                     zipDownloadUrl: `${baseUrl}/api/download/${jobId}`,
                     execLogFileOutput: execLogFileOutput,
+                    ...(separatedResults !== null && {
+                        tool: 'basicBlantRun' as const,
+                        resultsOutput: separatedResults,
+                    }),
                 },
             };
 
@@ -325,6 +363,10 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
             message: `Job Status is ${status}.`,
             redirect: `/lookup-job/${jobId}`,
             execLogFileOutput: job.data.execLogFileOutput,
+            ...(isBasicBlantRun && {
+                tool: 'basicBlantRun' as const,
+                resultsOutput: job.data.resultsOutput ?? '',
+            }),
         };
         res.status(200).json(redirectResponse);
     } catch (err) {

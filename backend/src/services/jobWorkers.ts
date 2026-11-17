@@ -184,7 +184,10 @@ const basicBlantRunWorker = async (jobId: string, jobData: JobData) => {
     if (!networkPath.startsWith(jobDir + path.sep) || !fs.existsSync(networkPath)) {
         throw new Error(`Network file for job ${jobId} not found.`);
     }
-    const outputFile = path.join(jobDir, 'blant_runtime.log');
+    // blant writes its results to stdout and its "Note:" progress messages (and errors) to stderr.
+    // Keep them apart so the Lookup page can show the results on their own.
+    const progressFile = path.join(jobDir, 'blant_runtime.log');
+    const resultsFile = path.join(jobDir, 'results.txt');
 
     // Arguments are passed as an array: no shell, so nothing in them can be run as a command.
     const args = ['-k', String(k), networkPath];
@@ -199,50 +202,61 @@ const basicBlantRunWorker = async (jobId: string, jobData: JobData) => {
             timeout: BASIC_BLANT_RUN_TIMEOUT_MS,
             killSignal: 'SIGKILL',
         });
-        const logStream = fs.createWriteStream(outputFile, { flags: 'a' });
+        const progressStream = fs.createWriteStream(progressFile, { flags: 'a' });
+        const resultsStream = fs.createWriteStream(resultsFile, { flags: 'w' });
 
-        let output = '';
+        // Copies kept in Redis so the Lookup page can show them while the job runs (capped; full copies are in the files).
+        let progress = '';
+        let results = '';
         let settled = false;
         let pendingUpdate: NodeJS.Timeout | null = null;
         let lastUpdate = 0;
 
-        const pushOutput = () => {
-            pendingUpdate = null;
-            lastUpdate = Date.now();
-            updateJobInQueue(jobId, { execLogFileOutput: output }).catch((err) =>
+        const keepTail = (text: string) =>
+            text.length > MAX_LIVE_OUTPUT_CHARS ? text.slice(-MAX_LIVE_OUTPUT_CHARS) : text;
+
+        const saveToQueue = () =>
+            updateJobInQueue(jobId, { execLogFileOutput: progress, resultsOutput: results }).catch((err) =>
                 console.error(`Job ${jobId}: could not update output in queue:`, err),
             );
+
+        const scheduleSave = () => {
+            if (pendingUpdate) return;
+            const wait = Math.max(0, LIVE_OUTPUT_UPDATE_MS - (Date.now() - lastUpdate));
+            pendingUpdate = setTimeout(() => {
+                pendingUpdate = null;
+                lastUpdate = Date.now();
+                saveToQueue();
+            }, wait);
         };
 
-        const onData = (data: Buffer) => {
-            logStream.write(data);
-            output += data.toString();
-            if (output.length > MAX_LIVE_OUTPUT_CHARS) {
-                output = output.slice(-MAX_LIVE_OUTPUT_CHARS);
-            }
-            if (!pendingUpdate) {
-                const wait = Math.max(0, LIVE_OUTPUT_UPDATE_MS - (Date.now() - lastUpdate));
-                pendingUpdate = setTimeout(pushOutput, wait);
-            }
+        const addProgress = (text: string) => {
+            progressStream.write(text);
+            progress = keepTail(progress + text);
+            scheduleSave();
         };
 
-        child.stdout.on('data', onData);
-        child.stderr.on('data', onData);
+        child.stdout.on('data', (data: Buffer) => {
+            resultsStream.write(data);
+            results = keepTail(results + data.toString());
+            scheduleSave();
+        });
+        child.stderr.on('data', (data: Buffer) => addProgress(data.toString()));
 
         const finish = (error: Error | null) => {
             if (settled) return;
             settled = true;
             if (pendingUpdate) clearTimeout(pendingUpdate);
-            updateJobInQueue(jobId, { execLogFileOutput: output })
-                .catch((err) => console.error(`Job ${jobId}: could not update output in queue:`, err))
-                .finally(() => {
-                    logStream.end(() => (error ? reject(error) : resolve({ success: true })));
-                });
+            saveToQueue().finally(() => {
+                resultsStream.end(() =>
+                    progressStream.end(() => (error ? reject(error) : resolve({ success: true }))),
+                );
+            });
         };
 
         child.on('error', (error) => {
             console.error(`Job ${jobId} could not start blant:`, error);
-            logStream.write(`\nCould not start BLANT: ${error.message}\n`);
+            addProgress(`\nCould not start BLANT: ${error.message}\n`);
             finish(error);
         });
 
@@ -252,11 +266,11 @@ const basicBlantRunWorker = async (jobId: string, jobData: JobData) => {
                 finish(null);
             } else if (signal === 'SIGKILL') {
                 const message = `BLANT run timed out after ${BASIC_BLANT_RUN_TIMEOUT_MS / 60000} minutes.`;
-                logStream.write(`\n${message}\n`);
-                output += `\n${message}\n`;
+                addProgress(`\n${message}\n`);
                 finish(new Error(message));
             } else {
                 console.error(`Job ${jobId} failed with code ${code}`);
+                addProgress(`\nBLANT stopped with an error (exit code ${code ?? signal}).\n`);
                 finish(new Error(`blant exited with code ${code}`));
             }
         });
