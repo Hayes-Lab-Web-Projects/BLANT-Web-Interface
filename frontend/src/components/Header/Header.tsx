@@ -20,7 +20,7 @@ const Header: React.FC = () => {
       <nav className="header-nav" role="navigation" aria-label="Main navigation">
         <Link to="/" className="nav-link">Home</Link>
         <Link to="/about" className="nav-link">About BLANT</Link>
-        <Link to="/submit-job" className="nav-link">Submit New Job</Link>
+        <Link to="/submit-job" className="nav-link">Community Detection</Link>
         <Link to="/lookup-job" className="nav-link">Lookup Previous Job</Link>
         <Link to="/contact-us" className="nav-link">Contact Us</Link>
         {/* <Link to="/login" className="nav-link">Login/Register</Link> */}

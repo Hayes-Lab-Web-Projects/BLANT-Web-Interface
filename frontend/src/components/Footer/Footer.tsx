@@ -34,10 +34,10 @@ const Footer = () => {
                   Twitter
                 </a>
                 <a 
-                  href="https://github.com/hayeslab" 
-                  target="_blank" 
+                  href="https://github.com/waynebhayes"
+                  target="_blank"
                   rel="noopener noreferrer"
-                  aria-label="Hayes Lab GitHub (opens in new tab)"
+                  aria-label="Wayne Hayes on GitHub (opens in new tab)"
                 >
                   GitHub
                 </a>

@@ -8,9 +8,6 @@ import { useNavigate } from 'react-router';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const goToSubmitJob = () => {
-    navigate("/submit-job");
-  }
   const goToLookupJob = () => {
     navigate("/lookup-job");
   }
@@ -24,7 +21,6 @@ const LandingPage: React.FC = () => {
         className="landing-image"
       />
       <div className='landing-page-buttons' role="group" aria-label="Main actions">
-        <button onClick={goToSubmitJob} className='os-navButton' aria-label="Navigate to submit a new job page">Submit a Job</button>
         <button onClick={goToLookupJob} className='os-navButton' aria-label="Navigate to lookup a previous job page">Lookup a Job</button>
       </div>
       
