@@ -1,7 +1,8 @@
 import fs from 'fs';
 import { Response, NextFunction } from 'express';
 import HttpError from '../middlewares/HttpError';
-import { createJob } from '../services/jobService';
+import { createJob, createBasicBlantRunJob } from '../services/jobService';
+import { cleanupFile } from '../middlewares/upload';
 import { jobProcess } from '../services/processService';
 import {
     DownloadZipRequest,
@@ -15,7 +16,10 @@ import {
     ProcessJobData,
     SubmitJobOptions,
     SubmitJobRequest,
+    SubmitBasicBlantRunRequest,
     UnifiedResponse,
+    BASIC_BLANT_RUN_K_MIN,
+    BASIC_BLANT_RUN_K_MAX,
 } from '../../types/types';
 import path from 'path';
 import { getJobFromQueue, getWaitingCount } from '../config/queue';
@@ -149,6 +153,58 @@ const submitJobController = async (req: SubmitJobRequest, res: Response, next: N
     }
 };
  
+/**
+ * Reads a text file from a job's folder, or returns null if it doesn't exist or can't be read.
+ * `name` is always a fixed file name chosen by the server, never user input.
+ */
+const _readJobFile = (jobDir: string, name: string): string | null => {
+    const filePath = path.join(jobDir, name);
+    try {
+        return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
+    } catch (err) {
+        console.error(`Error reading ${filePath}:`, err);
+        return null;
+    }
+};
+
+/**
+ * Parses and validates `k` for a Basic BLANT Run.
+ * Accepts only a plain whole number (e.g. "4") inside the allowed range.
+ */
+const _parseBasicBlantRunK = (rawK: unknown): number => {
+    if (typeof rawK !== 'string' || !/^\d+$/.test(rawK.trim())) {
+        throw HttpError.badRequest('k must be a whole number.');
+    }
+    const k = Number(rawK.trim());
+    if (k < BASIC_BLANT_RUN_K_MIN || k > BASIC_BLANT_RUN_K_MAX) {
+        throw HttpError.badRequest(`k must be between ${BASIC_BLANT_RUN_K_MIN} and ${BASIC_BLANT_RUN_K_MAX}.`);
+    }
+    return k;
+};
+
+/**
+ * Controller for the Basic BLANT Run tool: `./blant -k <k> network.el`.
+ * Expects multipart form data with `file` (.el network) and `k`.
+ */
+const submitBasicBlantRunController = async (req: SubmitBasicBlantRunRequest, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.file) {
+            throw HttpError.badRequest('No network file uploaded.');
+        }
+        const k = _parseBasicBlantRunK(req.body.k);
+        const jobData = await createBasicBlantRunJob(req.file, k);
+        const processResult = await processController(jobData);
+        res.status(201).json(processResult);
+    } catch (err) {
+        // On a validation error the upload is still in tmp/; remove it.
+        // (After a successful preprocess it has already been moved, and unlink just logs.)
+        if (err instanceof HttpError && err.statusCode === 400) {
+            cleanupFile(req.file);
+        }
+        next(err);
+    }
+};
+
 // Controller to process a job after submission.
 const processController = async (data: JobData): Promise<ProcessJobData> => {
     const jobId = data.id;
@@ -192,6 +248,26 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
 
         const status = await job.getState();
         console.log("getJobStatus status: ", status);
+
+        const isBasicBlantRun = job.data.tool === 'basicBlantRun';
+        // Jobs run by an older worker wrote results and progress into one log and have no results.txt;
+        // for those, leave out `tool` so the Lookup page shows the single combined log as before.
+        const separatedResults = isBasicBlantRun ? _readJobFile(jobDir, 'results.txt') : null;
+
+        // Basic BLANT Run failures: send the progress log (it holds blant's error message)
+        // instead of the generic community detection error.
+        if (status === 'failed' && isBasicBlantRun) {
+            const message = 'BLANT stopped with an error. See the progress log below.';
+            res.status(400).json({
+                status: 'error',
+                message,
+                error: { message },
+                tool: 'basicBlantRun',
+                execLogFileOutput: _readJobFile(jobDir, 'blant_runtime.log') ?? job.data.execLogFileOutput,
+                resultsOutput: separatedResults ?? '',
+            });
+            return;
+        }
 
         if (status === 'failed') {
             // Read the blant_runtime.log file for error details
@@ -248,6 +324,10 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
                         or directly accessed using ${baseUrl}/results?id=${jobId}.`,
                     zipDownloadUrl: `${baseUrl}/api/download/${jobId}`,
                     execLogFileOutput: execLogFileOutput,
+                    ...(separatedResults !== null && {
+                        tool: 'basicBlantRun' as const,
+                        resultsOutput: separatedResults,
+                    }),
                 },
             };
 
@@ -283,6 +363,10 @@ const getJobStatus = async (req: GetJobResultsRequest, res: Response, next: Next
             message: `Job Status is ${status}.`,
             redirect: `/lookup-job/${jobId}`,
             execLogFileOutput: job.data.execLogFileOutput,
+            ...(isBasicBlantRun && {
+                tool: 'basicBlantRun' as const,
+                resultsOutput: job.data.resultsOutput ?? '',
+            }),
         };
         res.status(200).json(redirectResponse);
     } catch (err) {
@@ -342,6 +426,7 @@ export {
     downloadZipJob, 
     getJobStatus,
     submitJobController, 
+    submitBasicBlantRunController,
     processController,
     cancelJob,
 };

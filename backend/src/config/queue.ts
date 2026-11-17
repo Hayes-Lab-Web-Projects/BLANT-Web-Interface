@@ -1,4 +1,4 @@
-import { Queue } from 'bullmq';
+import { Queue, JobsOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { JobData } from '../../types/types';
 require('dotenv').config();
@@ -12,15 +12,20 @@ const connection = new IORedis({
 
 const jobQueue = new Queue<JobData>('jobQueue', { connection });
 
-async function addJobToQueue(jobId: string, jobData: JobData) {
+// Default retry policy (used by community detection).
+const defaultJobOptions: JobsOptions = {
+    attempts: 7,
+    backoff: { type: 'exponential', delay: 5000 },
+};
+
+async function addJobToQueue(jobId: string, jobData: JobData, options: JobsOptions = defaultJobOptions) {
     console.log('Adding job to queue', jobId);
     await jobQueue.add(
         'BLANT Job', 
         jobData,
         {
+            ...options,
             jobId: jobId,
-            attempts: 7,
-            backoff: { type: 'exponential', delay: 5000}
         },
     );
 }

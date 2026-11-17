@@ -47,6 +47,12 @@ export interface SubmitJobRequest extends Request{
     };
 }
 
+export interface SubmitBasicBlantRunRequest extends Request {
+    body: {
+        k: string;
+    };
+}
+
 export interface SubmitJobOptions {
     density: number,
     graphletSize: number,
@@ -87,6 +93,9 @@ export interface UnifiedResponse<T = undefined, E = undefined> {
     status: 'success' | 'error' | 'redirect' | 'processing' | 'waiting';
     message: string;
     execLogFileOutput?: string;
+    // Basic BLANT Run only: blant's results (stdout), kept separate from the progress log above.
+    tool?: JobTool;
+    resultsOutput?: string;
     data?: T;
     error?: ErrorDetails<E>;
     redirect?: string;
@@ -97,13 +106,28 @@ export type JobStatus = 'preprocessing' | 'processing' | 'processed' | 'failed';
 
 export type JobMode = 'f' | 'o' | 'g' | 'i' | 'j' ;
 
+// Which web tool a job belongs to. Jobs queued before this field existed have no
+// `tool` and are treated as community detection.
+export type JobTool = 'communityDetection' | 'basicBlantRun';
+
+// Allowed values of k for the Basic BLANT Run tool (`./blant -k <k> network.el`).
+// Checked on the server in the controller and again in the worker.
+// The server only has BLANT lookup tables (canon_maps/canon_list<k>.txt) for k = 3..7;
+// k = 8 fails with "cannot find ./canon_maps/canon_list8.txt" until that table is built.
+export const BASIC_BLANT_RUN_K_MIN = 3;
+export const BASIC_BLANT_RUN_K_MAX = 7;
+
 export type JobData = {
     // identifiers
     id: string;
     status: JobStatus;
-    density: number;
-    graphletSize: number;
-    fractionalOverlap: number;
+    tool?: JobTool;
+    // community detection options
+    density?: number;
+    graphletSize?: number;
+    fractionalOverlap?: number;
+    // basic BLANT run options
+    k?: number;
     // file info
     networkName: string;
     extension: string;
@@ -114,7 +138,8 @@ export type JobData = {
     result?: any;
     error?: string;
     // outputs
-    execLogFileOutput: string;
+    execLogFileOutput: string;  // for Basic BLANT Run: progress messages (stderr) only
+    resultsOutput?: string;     // Basic BLANT Run only: results (stdout)
     // timestamps (as ISO strings for JSON serialization)
     createdAt: string;
     updatedAt: string;
@@ -187,6 +212,8 @@ export interface ProcessedJobResponse {
     note: string;
     zipDownloadUrl: string;
     execLogFileOutput: string;
+    tool?: JobTool;
+    resultsOutput?: string;
 };
 
 // AUTH TYPES

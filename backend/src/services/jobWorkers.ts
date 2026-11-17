@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { JobData } from '../../types/types';
+import { JobData, BASIC_BLANT_RUN_K_MIN, BASIC_BLANT_RUN_K_MAX } from '../../types/types';
 import IORedis from 'ioredis';
 import { spawn } from 'child_process';
 import fs from 'fs';
@@ -43,7 +43,12 @@ const sendEmail = (recipientEmail: string, subject: string, text: string) => {
 const blantDirectory = process.env.BLANT_DIRECTORY;
 const worker = new Worker('jobQueue', async (job: Job) => {
         console.log("Worker Started Processing Job: ", job.id);
-        await jobWorker(job.id, job.data);
+        if (job.data.tool === 'basicBlantRun') {
+            await basicBlantRunWorker(job.id, job.data);
+        } else {
+            // community detection (also jobs queued before `tool` existed)
+            await jobWorker(job.id, job.data);
+        }
         console.log("Worker Completed Job: ", job.id);
     },
     {
@@ -155,4 +160,121 @@ const jobWorker = async (jobId: string, jobData: JobData) => {
 
 }
 
-export { worker, jobWorker };
+// ---------------------------------------------------------------------------
+// Basic BLANT Run: ./blant -k <k> network.el
+// ---------------------------------------------------------------------------
+
+const BASIC_BLANT_RUN_TIMEOUT_MS = 10 * 60 * 1000;   // kill blant after 10 minutes
+const MAX_LIVE_OUTPUT_CHARS = 1_000_000;             // cap on output kept in Redis (full output stays in the log file)
+const LIVE_OUTPUT_UPDATE_MS = 1000;                  // push output to Redis at most once a second
+
+const basicBlantRunWorker = async (jobId: string, jobData: JobData) => {
+    // Second safety check: never run blant with an unexpected k, even if the queue data was tampered with.
+    const k = jobData.k;
+    if (!Number.isInteger(k) || k < BASIC_BLANT_RUN_K_MIN || k > BASIC_BLANT_RUN_K_MAX) {
+        throw new Error(`Invalid k for job ${jobId}: ${k}`);
+    }
+    if (!blantDirectory) {
+        throw new Error('BLANT_DIRECTORY is not set.');
+    }
+
+    // Paths are built only from the server-generated job ID and the name multer accepted.
+    const jobDir = path.resolve('./process', jobId);
+    const networkPath = path.join(jobDir, 'networks', `${jobData.networkName}${jobData.extension}`);
+    if (!networkPath.startsWith(jobDir + path.sep) || !fs.existsSync(networkPath)) {
+        throw new Error(`Network file for job ${jobId} not found.`);
+    }
+    // blant writes its results to stdout and its "Note:" progress messages (and errors) to stderr.
+    // Keep them apart so the Lookup page can show the results on their own.
+    const progressFile = path.join(jobDir, 'blant_runtime.log');
+    const resultsFile = path.join(jobDir, 'results.txt');
+
+    // Arguments are passed as an array: no shell, so nothing in them can be run as a command.
+    const args = ['-k', String(k), networkPath];
+    console.log(`Basic BLANT Run job ${jobId}: ./blant ${args.join(' ')} (cwd ${blantDirectory})`);
+
+    return new Promise((resolve, reject) => {
+        const child = spawn('./blant', args, {
+            cwd: blantDirectory,
+            // setup.sh is not needed for plain `blant -k` (it only adds helper-script folders to PATH),
+            // but BLANT_HOME tells blant where its canon_maps lookup tables are.
+            env: { ...process.env, BLANT_HOME: blantDirectory },
+            timeout: BASIC_BLANT_RUN_TIMEOUT_MS,
+            killSignal: 'SIGKILL',
+        });
+        const progressStream = fs.createWriteStream(progressFile, { flags: 'a' });
+        const resultsStream = fs.createWriteStream(resultsFile, { flags: 'w' });
+
+        // Copies kept in Redis so the Lookup page can show them while the job runs (capped; full copies are in the files).
+        let progress = '';
+        let results = '';
+        let settled = false;
+        let pendingUpdate: NodeJS.Timeout | null = null;
+        let lastUpdate = 0;
+
+        const keepTail = (text: string) =>
+            text.length > MAX_LIVE_OUTPUT_CHARS ? text.slice(-MAX_LIVE_OUTPUT_CHARS) : text;
+
+        const saveToQueue = () =>
+            updateJobInQueue(jobId, { execLogFileOutput: progress, resultsOutput: results }).catch((err) =>
+                console.error(`Job ${jobId}: could not update output in queue:`, err),
+            );
+
+        const scheduleSave = () => {
+            if (pendingUpdate) return;
+            const wait = Math.max(0, LIVE_OUTPUT_UPDATE_MS - (Date.now() - lastUpdate));
+            pendingUpdate = setTimeout(() => {
+                pendingUpdate = null;
+                lastUpdate = Date.now();
+                saveToQueue();
+            }, wait);
+        };
+
+        const addProgress = (text: string) => {
+            progressStream.write(text);
+            progress = keepTail(progress + text);
+            scheduleSave();
+        };
+
+        child.stdout.on('data', (data: Buffer) => {
+            resultsStream.write(data);
+            results = keepTail(results + data.toString());
+            scheduleSave();
+        });
+        child.stderr.on('data', (data: Buffer) => addProgress(data.toString()));
+
+        const finish = (error: Error | null) => {
+            if (settled) return;
+            settled = true;
+            if (pendingUpdate) clearTimeout(pendingUpdate);
+            saveToQueue().finally(() => {
+                resultsStream.end(() =>
+                    progressStream.end(() => (error ? reject(error) : resolve({ success: true }))),
+                );
+            });
+        };
+
+        child.on('error', (error) => {
+            console.error(`Job ${jobId} could not start blant:`, error);
+            addProgress(`\nCould not start BLANT: ${error.message}\n`);
+            finish(error);
+        });
+
+        child.on('close', (code, signal) => {
+            if (code === 0) {
+                console.log(`Job ${jobId} completed successfully`);
+                finish(null);
+            } else if (signal === 'SIGKILL') {
+                const message = `BLANT run timed out after ${BASIC_BLANT_RUN_TIMEOUT_MS / 60000} minutes.`;
+                addProgress(`\n${message}\n`);
+                finish(new Error(message));
+            } else {
+                console.error(`Job ${jobId} failed with code ${code}`);
+                addProgress(`\nBLANT stopped with an error (exit code ${code ?? signal}).\n`);
+                finish(new Error(`blant exited with code ${code}`));
+            }
+        });
+    });
+};
+
+export { worker, jobWorker, basicBlantRunWorker };

@@ -100,6 +100,7 @@ interface Api {
 //   upload: (formData: FormData) => Promise<SubmitJobResponse>;
 //   process: (jobId: string) => Promise<ProcessJobResponse>;
   submitJob: (formData: FormData) => Promise<any>;
+  submitBasicBlantRun: (formData: FormData) => Promise<any>;
   getJobStatus: (
     jobId: string
   ) => Promise<any>;
@@ -145,6 +146,21 @@ const api: Api = {
       return responseData;
     } catch (error: any) {
       console.error("submitJob error:", error);
+      throw new ApiError("Failed to submit job, something went wrong", 500);
+    }
+  },
+
+  // Basic BLANT Run: ./blant -k <k> network.el
+  // formData must contain `file` (.el network) and `k`.
+  submitBasicBlantRun: async (formData: FormData): Promise<any> => {
+    try {
+      const response = await fetch(`${API_URL}/jobs/submitBasicBlantRun`, {
+        method: "POST",
+        body: formData,
+      });
+      return await response.json();
+    } catch (error: any) {
+      console.error("submitBasicBlantRun error:", error);
       throw new ApiError("Failed to submit job, something went wrong", 500);
     }
   },
