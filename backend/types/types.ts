@@ -109,8 +109,10 @@ export type JobTool = 'communityDetection' | 'basicBlantRun';
 
 // Allowed values of k for the Basic BLANT Run tool (`./blant -k <k> network.el`).
 // Checked on the server in the controller and again in the worker.
+// The server only has BLANT lookup tables (canon_maps/canon_list<k>.txt) for k = 3..7;
+// k = 8 fails with "cannot find ./canon_maps/canon_list8.txt" until that table is built.
 export const BASIC_BLANT_RUN_K_MIN = 3;
-export const BASIC_BLANT_RUN_K_MAX = 8;
+export const BASIC_BLANT_RUN_K_MAX = 7;
 
 export type JobData = {
     // identifiers

@@ -11,7 +11,7 @@ import api from '../../api/api';
 
 // Must match BASIC_BLANT_RUN_K_MIN / _MAX in backend/types/types.ts (the server re-checks).
 const K_MIN = 3;
-const K_MAX = 8;
+const K_MAX = 7;
 const K_DEFAULT = 4;
 const K_VALUES = Array.from({ length: K_MAX - K_MIN + 1 }, (_, i) => K_MIN + i);
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // matches the backend upload limit

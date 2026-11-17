@@ -193,6 +193,9 @@ const basicBlantRunWorker = async (jobId: string, jobData: JobData) => {
     return new Promise((resolve, reject) => {
         const child = spawn('./blant', args, {
             cwd: blantDirectory,
+            // setup.sh is not needed for plain `blant -k` (it only adds helper-script folders to PATH),
+            // but BLANT_HOME tells blant where its canon_maps lookup tables are.
+            env: { ...process.env, BLANT_HOME: blantDirectory },
             timeout: BASIC_BLANT_RUN_TIMEOUT_MS,
             killSignal: 'SIGKILL',
         });
